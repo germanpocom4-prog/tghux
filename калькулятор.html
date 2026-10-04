@@ -1,0 +1,443 @@
+
+
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🧮 Онлайн Калькулятор</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #f4f7fc;
+      --text-color: #333;
+      --primary: #3498db;
+      --secondary: #e67e22;
+      --accent: #9b59b6;
+      --border: #ddd;
+    }
+
+    .dark-mode {
+      --bg-color: #1a1a2e;
+      --text-color: #f0f0ff;
+      --primary: #8e44ad;
+      --secondary: #d35400;
+      --accent: #b29cde;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      transition: all 0.4s ease-in-out;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .calculator {
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .calculator:hover {
+      transform: translateY(-4px);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      background-color: #fafafa;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s ease-in-out;
+      box-shadow: inset -2px -2px 5px rgba(0,0,0,0.1);
+    }
+
+    button:hover {
+      background-color: #2980b9;
+      transform: scale(1.02);
+      box-shadow: inset -3px -3px 6px rgba(0,0,0,0.15), 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    button.operator {
+      background-color: var(--secondary) !important;
+      font-weight: bold;
+    }
+
+    .result {
+      margin-top: 0.7rem;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 1.4rem;
+      color: #e74c3c;
+      text-align: center;
+      font-weight: bold;
+      background-color: #f9f9f9;
+      box-shadow: inset 0 -2px 6px rgba(0,0,0,0.05);
+    }
+
+    .result span {
+      display: block;
+      margin-top: 0.3rem;
+      font-size: 0.85rem;
+      color: #7f8c8d;
+    }
+
+    /* Темная тема — переключатель */
+    .theme-toggle {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .theme-toggle:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* История */
+    .history-container {
+      margin-top: 2rem;
+      width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
+      border-radius: 8px;
+      background-color: #f9f9fb;
+      padding: 1rem;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.05);
+    }
+
+    .history-item {
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      background-color: #fff;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: var(--text-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .history-item span {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.85rem;
+      color: #7f8c8d;
+    }
+
+    /* Анимация при вводе */
+    input:focus + .result, button:hover ~ .result {
+      animation: pulse 1s ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+
+    /* Плавное переключение темы */
+    .theme-toggle::after {
+      content: "☀️";
+    }
+
+    .dark-mode .theme-toggle::after {
+      content: "🌙";
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+      input[type="number"] {
+        font-size: 1rem;
+      }
+      button {
+        font-size: 0.9rem;
+        padding: 12px 16px;
+      }
+    }
+
+    /* Уведомление об ошибке */
+    .error-message {
+      color: #e74c3c;
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🧮 Онлайн Калькулятор</h1>
+
+  <!-- Переключатель темы -->
+  <button class="theme-toggle" id="toggleTheme">☀️</button>
+
+  <!-- Калькулятор -->
+  <div class="calculator">
+    <div class="input-group">
+      <input type="number" id="numInput" placeholder="Введите число..." />
+      <button onclick="handleOperator('÷')">÷</button>
+      <button onclick="handleOperator('/')">/</button>
+      <button onclick="handleOperator('*')">×</button>
+      <button onclick="handleOperator('%')">%</button>
+    </div>
+
+    <!-- Результат -->
+    <div class="result" id="result">0</div>
+
+    <!-- Ошибка (если нужно) -->
+    <div class="error-message" id="errorMsg"></div>
+  </div>
+
+  <!-- История записей -->
+  <div class="history-container">
+    <h3>История вычислений</h3>
+    <div id="historyList">Пока нет записей...</div>
+  </div>
+</div>
+
+<script>
+// === Firebase настройка ===
+const firebaseConfig = {
+  apiKey: "AIzaSyDf2Xy7uZa9Hq0R6Lj8k3Mv4sUJwWbGcYg",
+  authDomain: "calcu-12345.firebaseapp.com",
+  databaseURL: "https://calcu-12345-default-rtdb.firebaseio.com",
+  projectId: "calcu-12345",
+  storageBucket: "calcu-12345.appspot.com",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abcdef1234567890"
+};
+
+// Инициализация Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// === Глобальные переменные ===
+let currentNumber = 0;
+let previousValue = null;
+let operation = null;
+let resultDisplay = document.getElementById('result');
+let numInput = document.getElementById('numInput');
+let historyList = document.getElementById('historyList');
+let errorMsg = document.getElementById('errorMsg');
+
+```javascript
+// === Функция: обработка операции ===
+function handleOperator(op) {
+  const input = parseFloat(numInput.value);
+  
+  if (!isNaN(input)) {
+    // Если у нас уже есть предыдущее значение и операция, выполняем её
+    if (previousValue !== null && operation !== null) {
+      calculateResult();
+    }
+
+    previousValue = input;
+    operation = op;
+
+    numInput.value = '';
+    
+    resultDisplay.textContent = '0';
+  } else {
+    errorMsg.style.display = 'block';
+    errorMsg.textContent = "Пожалуйста, введите число!";
+  }
+}
+
+// === Функция: выполнение вычисления (с учётом операции) ===
+function calculateResult() {
+  const input = parseFloat(numInput.value);
+  
+  if (!isNaN(input)) {
+    let result;
+
+    switch (operation) {
+      case '+':
+        result = previousValue + input;
+        break;
+      case '-':
+        result = previousValue - input;
+        break;
+      case '*':
+        result = previousValue * input;
+        break;
+      case '/':
+        if (input === 0) {
+          errorMsg.style.display = 'block';
+          errorMsg.textContent = "Ошибка: деление на ноль!";
+          return;
+        }
+        result = previousValue / input;
+        break;
+      case '%':
+        result = previousValue * (input / 100);
+        break;
+      default:
+        return;
+    }
+
+    // Обновляем результат
+    resultDisplay.textContent = result;
+
+    // Сохраняем в историю
+    const historyEntry = {
+      operation: operation,
+      firstNumber: previousValue,
+      secondNumber: input,
+      result: result,
+      timestamp: new Date().toLocaleString()
+    };
+
+    db.ref('history').push(historyEntry);
+
+    // Обновляем предыдущее значение для следующего шага
+    previousValue = result;
+    operation = null;
+
+    // Очищаем поле ввода и устанавливаем результат как текущий
+    numInput.value = '';
+  } else {
+    errorMsg.style.display = 'block';
+    errorMsg.textContent = "Пожалуйста, введите число!";
+  }
+}
+
+// === Функция: переключение темы (с плавным переходом) ===
+function toggleTheme() {
+  const body = document.body;
+  const themeToggle = document.getElementById('toggleTheme');
+  
+  if (body.classList.contains('dark-mode')) {
+    body.classList.remove('dark-mode');
+    themeToggle.textContent = '☀️';
+  } else {
+    body.classList.add('dark-mode');
+    themeToggle.textContent = '🌙';
+  }
+}
+
+// === Функция: загрузка истории из Firebase при запуске страницы ===
+function loadHistory() {
+  const historyRef = db.ref('history');
+  
+  historyRef.on('value', (snapshot) => {
+    const entries = snapshot.val();
+    
+    if (!entries || Object.keys(entries).length === 0) {
+      historyList.innerHTML = "Пока нет записей...";
+      return;
+    }
+
+    // Построчно отображаем историю
+    let html = '';
+    for (const key in entries) {
+      const entry = entries[key];
+      
+      // Форматируем строку для отображения
+      html += `
+        <div class="history-item">
+          ${entry.firstNumber} ${entry.operation} ${entry.secondNumber} = ${entry.result}
+          <span>${entry.timestamp}</span>
+        </div>
+      `;
+    }
+
+    historyList.innerHTML = html;
+  });
+}
+
+// === Функция: обработка ввода (например, при нажатии на цифры или Enter) ===
+document.addEventListener('keydown', function(event) {
+  const key = event.key;
+
+  // Проверяем, является ли клавиша цифрой или операцией
+  if (/^[0-9]$/.test(key)) {
+    numInput.value += key;
+  } else if (key === '.') {
+    numInput.value += '.';
+  } else if (key === '+') {
+    handleOperator('+');
+  } else if (key === '-') {
+    handleOperator('-');
+  } else if (key === '*') {
+    handleOperator('*');
+  } else if (key === '/') {
+    handleOperator('/');
+  } else if (key === '%') {
+    handleOperator('%');
+  }
+});
+
+// === Инициализация при загрузке страницы ===
+document.addEventListener('DOMContentLoaded', () => {
+  // Загружаем историю из Firebase
+  loadHistory();
+
+  // Устанавливаем слушатели для переключения темы (на панель)
+  const themeToggle = document.getElementById('toggleTheme');
+  themeToggle.addEventListener('click', toggleTheme);
+});
+```
